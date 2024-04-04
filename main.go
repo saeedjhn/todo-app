@@ -22,17 +22,26 @@ type Task struct {
 	isDone   bool
 }
 
-var userStorage []User
-var authenticatedUser *User
+type Category struct {
+	ID     int
+	UserID int
+	Title  string
+	Color  string
+}
 
+var userStorage []User
+var categoryStorage []Category
 var taskStorage []Task
 
+var authenticatedUser *User
+
 const (
-	CreateTask   = "create-task"
-	ListTask     = "list-task"
-	RegisterUser = "register-user"
-	LoginUser    = "login-user"
-	Exit         = "exit"
+	CreateTask     = "create-task"
+	ListTask       = "list-task"
+	CreateCategory = "create-category"
+	RegisterUser   = "register-user"
+	LoginUser      = "login-user"
+	Exit           = "exit"
 )
 
 func main() {
@@ -63,6 +72,8 @@ func runCommand(command string) {
 		createTask()
 	case ListTask:
 		listTask()
+	case CreateCategory:
+		createCategory()
 	case RegisterUser:
 		register()
 	case LoginUser:
@@ -74,6 +85,7 @@ func runCommand(command string) {
 		fmt.Println(
 			"You are authorized to the following commands:",
 			CreateTask,
+			CreateCategory,
 			RegisterUser,
 			LoginUser,
 		)
@@ -173,4 +185,27 @@ func createTask() {
 	})
 
 	fmt.Printf("task is: %+v\n", taskStorage[len(taskStorage)-1])
+}
+
+func createCategory() {
+	fmt.Println("***** Create Category *****")
+	scanner := bufio.NewScanner(os.Stdin)
+	var title, color string
+
+	fmt.Println("please enter the category title:")
+	scanner.Scan()
+	title = scanner.Text()
+
+	fmt.Println("please enter the color category:")
+	scanner.Scan()
+	color = scanner.Text()
+
+	categoryStorage = append(categoryStorage, Category{
+		ID:     len(categoryStorage) + 1,
+		UserID: authenticatedUser.ID,
+		Title:  title,
+		Color:  color,
+	})
+
+	fmt.Printf("task is: %+v\n", categoryStorage[len(categoryStorage)-1])
 }
