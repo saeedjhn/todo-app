@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type User struct {
@@ -14,12 +15,12 @@ type User struct {
 }
 
 type Task struct {
-	ID       int
-	UserID   int
-	Title    string
-	Category string
-	DueDate  string
-	isDone   bool
+	ID         int
+	UserID     int
+	CategoryID int
+	Title      string
+	DueDate    string
+	isDone     bool
 }
 
 type Category struct {
@@ -171,17 +172,38 @@ func createTask() {
 	scanner.Scan()
 	category = scanner.Text()
 
+	categoryID, err := strconv.Atoi(category)
+	if err != nil {
+		fmt.Printf("category id is not valid integer, %v", err)
+		return
+	}
+
+	isFound := false
+	for _, c := range categoryStorage {
+		if c.ID == categoryID && c.UserID == authenticatedUser.ID {
+			isFound = true
+
+			break
+		}
+	}
+
+	if !isFound {
+		fmt.Println("category-id is not found")
+
+		return
+	}
+
 	fmt.Println("please enter the task due date:")
 	scanner.Scan()
 	duedate = scanner.Text()
 
 	taskStorage = append(taskStorage, Task{
-		ID:       len(taskStorage) + 1,
-		UserID:   authenticatedUser.ID,
-		Title:    title,
-		Category: category,
-		DueDate:  duedate,
-		isDone:   false,
+		ID:         len(taskStorage) + 1,
+		UserID:     authenticatedUser.ID,
+		CategoryID: categoryID,
+		Title:      title,
+		DueDate:    duedate,
+		isDone:     false,
 	})
 
 	fmt.Printf("task is: %+v\n", taskStorage[len(taskStorage)-1])
