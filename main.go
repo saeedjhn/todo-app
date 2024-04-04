@@ -13,10 +13,23 @@ type User struct {
 	Password string
 }
 
+type Task struct {
+	ID       int
+	UserID   int
+	Title    string
+	Category string
+	DueDate  string
+	isDone   bool
+}
+
 var userStorage []User
 var authenticatedUser *User
 
+var taskStorage []Task
+
 const (
+	CreateTask   = "create-task"
+	ListTask     = "list-task"
 	RegisterUser = "register-user"
 	LoginUser    = "login-user"
 	Exit         = "exit"
@@ -46,6 +59,10 @@ func runCommand(command string) {
 	}
 
 	switch command {
+	case CreateTask:
+		createTask()
+	case ListTask:
+		listTask()
 	case RegisterUser:
 		register()
 	case LoginUser:
@@ -56,9 +73,18 @@ func runCommand(command string) {
 		fmt.Println("command is not valid", command)
 		fmt.Println(
 			"You are authorized to the following commands:",
+			CreateTask,
 			RegisterUser,
 			LoginUser,
 		)
+	}
+}
+
+func listTask() {
+	for _, task := range taskStorage {
+		if task.UserID == authenticatedUser.ID {
+			fmt.Printf("%+v\n", task)
+		}
 	}
 }
 
@@ -118,4 +144,33 @@ func register() {
 	})
 
 	fmt.Printf("user is: %+v\n", userStorage[len(userStorage)-1])
+}
+
+func createTask() {
+	fmt.Println("***** Create Task ******")
+	var title, category, duedate string
+	scanner := bufio.NewScanner(os.Stdin)
+
+	fmt.Println("please enter the task title:")
+	scanner.Scan()
+	title = scanner.Text()
+
+	fmt.Println("please enter the task category:")
+	scanner.Scan()
+	category = scanner.Text()
+
+	fmt.Println("please enter the task due date:")
+	scanner.Scan()
+	duedate = scanner.Text()
+
+	taskStorage = append(taskStorage, Task{
+		ID:       len(taskStorage) + 1,
+		UserID:   authenticatedUser.ID,
+		Title:    title,
+		Category: category,
+		DueDate:  duedate,
+		isDone:   false,
+	})
+
+	fmt.Printf("task is: %+v\n", taskStorage[len(taskStorage)-1])
 }
