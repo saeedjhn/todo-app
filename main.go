@@ -44,6 +44,7 @@ const (
 	LoginUser      = "login-user"
 	Exit           = "exit"
 )
+const PathUserFile = "usersFile.txt"
 
 func main() {
 	fmt.Println("Hello to TODO app")
@@ -150,11 +151,38 @@ func register() {
 	scanner.Scan()
 	password = scanner.Text()
 
-	userStorage = append(userStorage, User{
+	user := User{
 		ID:       len(userStorage) + 1,
 		Email:    email,
 		Password: password,
-	})
+	}
+
+	userStorage = append(userStorage, user)
+
+	f, err := os.OpenFile(PathUserFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			fmt.Println("can`t close file,", err)
+		}
+	}(f)
+
+	if err != nil {
+		fmt.Println("can`t create or open file,", err)
+
+		return
+	}
+
+	if _, err = f.WriteString(fmt.Sprintf(
+		"id:%d, email:%s, password:%s\n",
+		user.ID,
+		user.Email,
+		user.Password),
+	); err != nil {
+		fmt.Println("can`t write to file,", err)
+
+		return
+	}
 
 	fmt.Printf("user is: %+v\n", userStorage[len(userStorage)-1])
 }
