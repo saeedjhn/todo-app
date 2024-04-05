@@ -2,30 +2,34 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
+	"strings"
+	"unicode"
 )
 
 type User struct {
-	ID       int
+	Id       int
 	Email    string
 	Password string
 }
 
 type Task struct {
-	ID         int
-	UserID     int
-	CategoryID int
+	Id         int
+	UserId     int
+	CategoryId int
 	Title      string
 	DueDate    string
 	isDone     bool
 }
 
 type Category struct {
-	ID     int
-	UserID int
+	Id     int
+	UserId int
 	Title  string
 	Color  string
 }
@@ -44,10 +48,12 @@ const (
 	LoginUser      = "login-user"
 	Exit           = "exit"
 )
-const PathUserFile = "usersFile.txt"
+const UserStoragePath = "userStorageFile.txt"
 
 func main() {
 	fmt.Println("Hello to TODO app")
+
+	loadUsersFromFile()
 
 	command := flag.String("command", "no-command", "command to run")
 	flag.Parse()
@@ -59,6 +65,62 @@ func main() {
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
 		*command = scanner.Text()
+	}
+}
+
+func loadUsersFromFile() {
+	if _, err := os.Stat(UserStoragePath); errors.Is(err, os.ErrNotExist) {
+		// path/to/whatever does not exist
+		return
+	}
+
+	read, err := os.ReadFile(UserStoragePath)
+	if err != nil {
+		panic(err)
+	}
+
+	firstLetterToUpper := func(s string) string {
+
+		if len(s) == 0 {
+			return s
+		}
+
+		r := []rune(s)
+		r[0] = unicode.ToUpper(r[0])
+
+		return string(r)
+	}
+
+	for _, userSlice := range strings.Split(string(read), "\n") {
+		if userSlice == "" {
+			continue
+		}
+
+		values := strings.Split(userSlice, ", ")
+		user := User{}
+		// using for loop to iterate over the string
+		for _, value := range values {
+			parts := strings.Split(value, ":")
+			if len(parts) != 2 {
+				continue
+			}
+			key, val := parts[0], parts[1]
+			v := reflect.ValueOf(&user).Elem()
+			f := v.FieldByName(firstLetterToUpper(key))
+			if !f.IsValid() {
+				continue
+			}
+			if f.Type().Kind() == reflect.Int {
+				age, err := strconv.Atoi(val)
+				if err != nil {
+					continue
+				}
+				f.SetInt(int64(age))
+			} else {
+				f.SetString(val)
+			}
+		}
+		fmt.Printf("%+v\n", user)
 	}
 }
 
@@ -96,7 +158,7 @@ func runCommand(command string) {
 
 func listTask() {
 	for _, task := range taskStorage {
-		if task.UserID == authenticatedUser.ID {
+		if task.UserId == authenticatedUser.Id {
 			fmt.Printf("%+v\n", task)
 		}
 	}
@@ -152,14 +214,14 @@ func register() {
 	password = scanner.Text()
 
 	user := User{
-		ID:       len(userStorage) + 1,
+		Id:       len(userStorage) + 1,
 		Email:    email,
 		Password: password,
 	}
 
 	userStorage = append(userStorage, user)
 
-	f, err := os.OpenFile(PathUserFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile(UserStoragePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
@@ -175,7 +237,7 @@ func register() {
 
 	if _, err = f.WriteString(fmt.Sprintf(
 		"id:%d, email:%s, password:%s\n",
-		user.ID,
+		user.Id,
 		user.Email,
 		user.Password),
 	); err != nil {
@@ -200,7 +262,7 @@ func createTask() {
 	scanner.Scan()
 	category = scanner.Text()
 
-	categoryID, err := strconv.Atoi(category)
+	categoryId, err := strconv.Atoi(category)
 	if err != nil {
 		fmt.Printf("category id is not valid integer, %v", err)
 		return
@@ -208,7 +270,7 @@ func createTask() {
 
 	isFound := false
 	for _, c := range categoryStorage {
-		if c.ID == categoryID && c.UserID == authenticatedUser.ID {
+		if c.Id == categoryId && c.UserId == authenticatedUser.Id {
 			isFound = true
 
 			break
@@ -226,9 +288,9 @@ func createTask() {
 	duedate = scanner.Text()
 
 	taskStorage = append(taskStorage, Task{
-		ID:         len(taskStorage) + 1,
-		UserID:     authenticatedUser.ID,
-		CategoryID: categoryID,
+		Id:         len(taskStorage) + 1,
+		UserId:     authenticatedUser.Id,
+		CategoryId: categoryId,
 		Title:      title,
 		DueDate:    duedate,
 		isDone:     false,
@@ -251,8 +313,8 @@ func createCategory() {
 	color = scanner.Text()
 
 	categoryStorage = append(categoryStorage, Category{
-		ID:     len(categoryStorage) + 1,
-		UserID: authenticatedUser.ID,
+		Id:     len(categoryStorage) + 1,
+		UserId: authenticatedUser.Id,
 		Title:  title,
 		Color:  color,
 	})
