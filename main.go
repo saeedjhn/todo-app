@@ -2,37 +2,15 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
+	. "github.com/saeedjhn/todo-app/constant"
+	. "github.com/saeedjhn/todo-app/domain"
+	"github.com/saeedjhn/todo-app/repository/filestore"
+	"github.com/saeedjhn/todo-app/service"
 	"os"
-	"reflect"
 	"strconv"
-	"strings"
-	"unicode"
 )
-
-type User struct {
-	Id       int
-	Email    string
-	Password string
-}
-
-type Task struct {
-	Id         int
-	UserId     int
-	CategoryId int
-	Title      string
-	DueDate    string
-	isDone     bool
-}
-
-type Category struct {
-	Id     int
-	UserId int
-	Title  string
-	Color  string
-}
 
 var userStorage []User
 var categoryStorage []Category
@@ -40,26 +18,18 @@ var taskStorage []Task
 
 var authenticatedUser *User
 
-const (
-	CreateTask     = "create-task"
-	ListTask       = "list-task"
-	CreateCategory = "create-category"
-	RegisterUser   = "register-user"
-	LoginUser      = "login-user"
-	Exit           = "exit"
-)
-const UserStoragePath = "userStorageFile.txt"
-
 func main() {
-	fmt.Println("Hello to TODO app")
-
-	loadUsersFromFile()
+	uService := service.NewUserService(
+		filestore.NewUserFileRepository(UserStoragePath),
+	)
 
 	command := flag.String("command", "no-command", "command to run")
 	flag.Parse()
 
+	fmt.Println("Hello to TODO app")
+
 	for {
-		runCommand(*command)
+		runCommand(*command, uService)
 
 		fmt.Println("please enter another command:")
 		scanner := bufio.NewScanner(os.Stdin)
@@ -68,51 +38,7 @@ func main() {
 	}
 }
 
-func loadUsersFromFile() {
-	if _, err := os.Stat(UserStoragePath); errors.Is(err, os.ErrNotExist) {
-		// path/to/whatever does not exist
-		return
-	}
-
-	read, err := os.ReadFile(UserStoragePath)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, userSlice := range strings.Split(string(read), "\n") {
-		if userSlice == "" {
-			continue
-		}
-
-		values := strings.Split(userSlice, ", ")
-		user := User{}
-		// using for loop to iterate over the string
-		for _, value := range values {
-			parts := strings.Split(value, ":")
-			if len(parts) != 2 {
-				continue
-			}
-			key, val := parts[0], parts[1]
-			v := reflect.ValueOf(&user).Elem()
-			f := v.FieldByName(firstLetterToUpper(key))
-			if !f.IsValid() {
-				continue
-			}
-			if f.Type().Kind() == reflect.Int {
-				age, err := strconv.Atoi(val)
-				if err != nil {
-					continue
-				}
-				f.SetInt(int64(age))
-			} else {
-				f.SetString(val)
-			}
-		}
-		fmt.Printf("%+v\n", user)
-	}
-}
-
-func runCommand(command string) {
+func runCommand(command string, uService UserService) {
 	if command != RegisterUser && command != Exit && authenticatedUser == nil {
 		login()
 
@@ -127,7 +53,7 @@ func runCommand(command string) {
 	case CreateCategory:
 		createCategory()
 	case RegisterUser:
-		register()
+		register(uService)
 	case LoginUser:
 		login()
 	case Exit:
@@ -180,7 +106,7 @@ func login() {
 	}
 }
 
-func register() {
+func register(uService UserService) {
 	fmt.Println("***** Register *****")
 	scanner := bufio.NewScanner(os.Stdin)
 	var email, password string
@@ -201,20 +127,15 @@ func register() {
 	scanner.Scan()
 	password = scanner.Text()
 
-	user := User{
+	u := User{
 		Id:       len(userStorage) + 1,
 		Email:    email,
 		Password: password,
 	}
 
-	userStorage = append(userStorage, user)
+	userStorage = append(userStorage, u)
 
-	err := writeUserToFile(&user)
-	if err != nil {
-		fmt.Errorf("%s", err)
-
-		return
-	}
+	uService.Save(u)
 
 	fmt.Printf("user is: %+v\n", userStorage[len(userStorage)-1])
 }
@@ -263,7 +184,7 @@ func createTask() {
 		CategoryId: categoryId,
 		Title:      title,
 		DueDate:    duedate,
-		isDone:     false,
+		IsDone:     false,
 	})
 
 	fmt.Printf("task is: %+v\n", taskStorage[len(taskStorage)-1])
@@ -290,42 +211,4 @@ func createCategory() {
 	})
 
 	fmt.Printf("task is: %+v\n", categoryStorage[len(categoryStorage)-1])
-}
-
-func firstLetterToUpper(s string) string {
-
-	if len(s) == 0 {
-		return s
-	}
-
-	r := []rune(s)
-	r[0] = unicode.ToUpper(r[0])
-
-	return string(r)
-}
-
-func writeUserToFile(user *User) error {
-	f, err := os.OpenFile(UserStoragePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	defer func(f *os.File) error {
-		err := f.Close()
-		if err != nil {
-			return fmt.Errorf("can`t close file, %s", err)
-		}
-		return nil
-	}(f)
-
-	if err != nil {
-		return fmt.Errorf("can`t create or open file, %s", err)
-	}
-
-	if _, err = f.WriteString(fmt.Sprintf(
-		"id:%d, email:%s, password:%s\n",
-		user.Id,
-		user.Email,
-		user.Password),
-	); err != nil {
-		return fmt.Errorf("can`t write to file, %s", err)
-	}
-
-	return nil
 }
