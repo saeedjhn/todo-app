@@ -79,18 +79,6 @@ func loadUsersFromFile() {
 		panic(err)
 	}
 
-	firstLetterToUpper := func(s string) string {
-
-		if len(s) == 0 {
-			return s
-		}
-
-		r := []rune(s)
-		r[0] = unicode.ToUpper(r[0])
-
-		return string(r)
-	}
-
 	for _, userSlice := range strings.Split(string(read), "\n") {
 		if userSlice == "" {
 			continue
@@ -221,27 +209,9 @@ func register() {
 
 	userStorage = append(userStorage, user)
 
-	f, err := os.OpenFile(UserStoragePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			fmt.Println("can`t close file,", err)
-		}
-	}(f)
-
+	err := writeUserToFile(&user)
 	if err != nil {
-		fmt.Println("can`t create or open file,", err)
-
-		return
-	}
-
-	if _, err = f.WriteString(fmt.Sprintf(
-		"id:%d, email:%s, password:%s\n",
-		user.Id,
-		user.Email,
-		user.Password),
-	); err != nil {
-		fmt.Println("can`t write to file,", err)
+		fmt.Errorf("%s", err)
 
 		return
 	}
@@ -320,4 +290,42 @@ func createCategory() {
 	})
 
 	fmt.Printf("task is: %+v\n", categoryStorage[len(categoryStorage)-1])
+}
+
+func firstLetterToUpper(s string) string {
+
+	if len(s) == 0 {
+		return s
+	}
+
+	r := []rune(s)
+	r[0] = unicode.ToUpper(r[0])
+
+	return string(r)
+}
+
+func writeUserToFile(user *User) error {
+	f, err := os.OpenFile(UserStoragePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	defer func(f *os.File) error {
+		err := f.Close()
+		if err != nil {
+			return fmt.Errorf("can`t close file, %s", err)
+		}
+		return nil
+	}(f)
+
+	if err != nil {
+		return fmt.Errorf("can`t create or open file, %s", err)
+	}
+
+	if _, err = f.WriteString(fmt.Sprintf(
+		"id:%d, email:%s, password:%s\n",
+		user.Id,
+		user.Email,
+		user.Password),
+	); err != nil {
+		return fmt.Errorf("can`t write to file, %s", err)
+	}
+
+	return nil
 }
