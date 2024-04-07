@@ -12,22 +12,11 @@ ___
 
 - ### Domain(Entities)
 
-    - ***AdminUser***\
+    - ***Entity***\
       <sub>**Properties:**</sub>\
       <sub>- Id</sub>\
-      <sub>- Name</sub>\
-      <sub>- Family</sub>\
-      <sub>- Username</sub>\
-      <sub>- Password</sub>\
-      <sub>- BirthDate</sub>\
-      <sub>- NationalCode</sub>\
-      <sub>- Mobile</sub>\
-      <sub>- Phone</sub>\
-      <sub>- Status</sub>\
-      <sub>- Creator</sub>\
       <sub>**Behaviors:**</sub>\
       <sub>- Register a user</sub>\
-      <sub>- Log in user</sub>
 
 ## Major Packages used in this project
 
@@ -54,6 +43,11 @@ ___
 +-- README.md
 
 ```
+
+## TODO
+
+- Serialize And Deserialize JSON Added In Project
+- Added password hashing 
 
 ## API documentation of Simorgh Backend
 
