@@ -6,7 +6,7 @@ type UserService struct {
 	userRepository domain.UserRepository
 }
 
-func NewUserService(userRepository domain.UserRepository) domain.UserService {
+func NewUserService(userRepository domain.UserRepository) domain.UserAdaptorI {
 	return UserService{userRepository: userRepository}
 }
 

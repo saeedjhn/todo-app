@@ -6,7 +6,7 @@ type User struct {
 	Password string
 }
 
-type UserService interface {
+type UserAdaptorI interface {
 	Save(u User) error
 	Load() ([]User, error)
 }
