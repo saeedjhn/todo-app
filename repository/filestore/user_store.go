@@ -1,9 +1,10 @@
 package filestore
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
-	"github.com/saeedjhn/todo-app/domain"
+	"github.com/saeedjhn/todo-app/domain/entity"
 	"os"
 	"reflect"
 	"strconv"
@@ -11,16 +12,17 @@ import (
 	"unicode"
 )
 
-type UserFileRepository struct {
+type UserRepository struct {
 	FilePath string
 }
 
-func NewUserFileRepository(filePath string) domain.UserRepository {
-	return UserFileRepository{FilePath: filePath}
+func New(filePath string) *UserRepository {
+	return &UserRepository{FilePath: filePath}
 }
 
-func (u UserFileRepository) Save(user domain.User) error {
+func (u *UserRepository) Save(user entity.User) error {
 	f, err := os.OpenFile(u.FilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	//f, err := os.Open(u.FilePath)
 	defer func(f *os.File) error {
 		err := f.Close()
 		if err != nil {
@@ -33,9 +35,11 @@ func (u UserFileRepository) Save(user domain.User) error {
 		return fmt.Errorf("can`t create or open file, %s", err)
 	}
 
+	lineCount, err := u.count() // TODO - Check err scanner
+
 	if _, err = f.WriteString(fmt.Sprintf(
 		"id:%d, email:%s, password:%s\n",
-		user.Id,
+		lineCount,
 		user.Email,
 		user.Password),
 	); err != nil {
@@ -45,7 +49,7 @@ func (u UserFileRepository) Save(user domain.User) error {
 	return nil
 }
 
-func (u UserFileRepository) Load() ([]domain.User, error) {
+func (u *UserRepository) Load() ([]entity.User, error) {
 	if _, err := os.Stat(u.FilePath); errors.Is(err, os.ErrNotExist) {
 		// path/to/whatever does not exist
 		return nil, nil
@@ -56,14 +60,14 @@ func (u UserFileRepository) Load() ([]domain.User, error) {
 		panic(err)
 	}
 
-	var users []domain.User
+	var users []entity.User
 	for _, userSlice := range strings.Split(string(read), "\n") {
 		if userSlice == "" {
 			continue
 		}
 
 		values := strings.Split(userSlice, ", ")
-		user := domain.User{}
+		user := entity.User{}
 		// using for loop to iterate over the string
 		for _, value := range values {
 			parts := strings.Split(value, ":")
@@ -91,7 +95,7 @@ func (u UserFileRepository) Load() ([]domain.User, error) {
 	return users, nil
 }
 
-func (u UserFileRepository) firstLetterToUpper(s string) string {
+func (u *UserRepository) firstLetterToUpper(s string) string {
 	if len(s) == 0 {
 		return s
 	}
@@ -100,4 +104,33 @@ func (u UserFileRepository) firstLetterToUpper(s string) string {
 	r[0] = unicode.ToUpper(r[0])
 
 	return string(r)
+}
+
+func (u *UserRepository) count() (int, error) {
+	f, err := os.Open(u.FilePath)
+	defer func(f *os.File) error {
+		err := f.Close()
+		if err != nil {
+			return fmt.Errorf("can`t close file, %s", err)
+		}
+		return nil
+	}(f)
+
+	if err != nil {
+		return 0, fmt.Errorf("can`t create or open file, %s", err)
+	}
+
+	sc := bufio.NewScanner(f)
+	lineCount := 0
+	// Read through 'tokens' until an EOF is encountered.
+	for sc.Scan() {
+		lineCount++
+	}
+
+	// Check for scanning errors
+	if err := sc.Err(); err != nil {
+		return 0, fmt.Errorf("failed to scan file: %v", err)
+	}
+
+	return lineCount, nil
 }

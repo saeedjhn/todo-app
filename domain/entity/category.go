@@ -1,4 +1,4 @@
-package domain
+package entity
 
 type Category struct {
 	Id     int
@@ -6,3 +6,5 @@ type Category struct {
 	Title  string
 	Color  string
 }
+
+type CategoryAdaptor interface{}

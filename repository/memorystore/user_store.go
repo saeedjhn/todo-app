@@ -1,16 +1,18 @@
 package memorystore
 
-import "github.com/saeedjhn/todo-app/domain"
+import (
+	"github.com/saeedjhn/todo-app/domain/entity"
+)
 
-type UserMemoryRepository struct {
+type UserRepository struct {
 }
 
-func (u UserMemoryRepository) Save(user domain.User) error {
+func (u *UserRepository) Save(user entity.User) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (u UserMemoryRepository) Load() ([]domain.User, error) {
+func (u *UserRepository) Load() ([]entity.User, error) {
 	//TODO implement me
 	panic("implement me")
 }
