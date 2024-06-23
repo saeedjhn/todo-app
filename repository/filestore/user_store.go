@@ -35,7 +35,7 @@ func (u *UserRepository) Save(user entity.User) error {
 		return fmt.Errorf("can`t create or open file, %s", err)
 	}
 
-	lineCount, err := u.count() // TODO - Check err scanner
+	lineCount, _ := u.count() // TODO - Check err scanner
 
 	if _, err = f.WriteString(fmt.Sprintf(
 		"id:%d, email:%s, password:%s\n",

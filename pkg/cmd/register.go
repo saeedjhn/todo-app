@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/saeedjhn/todo-app/domain/dto/userdto"
 	"github.com/saeedjhn/todo-app/service/userservice"
+	"log"
 	"os"
 )
 
@@ -17,7 +18,12 @@ func Register(us userservice.UserAdaptor) {
 	scanner.Scan()
 	email = scanner.Text()
 
-	for _, user := range UserStorage {
+	users, err := us.Load()
+	if err != nil {
+		log.Fatalf("Can't load users %v", err)
+	}
+
+	for _, user := range users.Users {
 		if user.Email == email {
 			fmt.Println("please enter try again email, email already exists:")
 			scanner.Scan()
